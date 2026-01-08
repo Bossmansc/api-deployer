@@ -1,55 +1,52 @@
-from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from typing import Optional
+import bcrypt
+import hashlib
 import secrets
 import string
 import logging
-import hashlib
-import os
+from typing import Optional, Tuple
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Configure bcrypt with a workaround for the 72-byte limit
-# We'll use a custom handler that pre-hashes passwords
-class BcryptWithPreHash:
-    """Custom bcrypt handler that pre-hashes passwords with SHA-256"""
-    
-    def __init__(self):
-        # Create a regular CryptContext for internal use
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    
-    def _pre_hash(self, password: str) -> str:
-        """Pre-hash the password using SHA-256."""
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
-    
-    def hash(self, password: str) -> str:
-        """Hash a password with SHA-256 pre-hashing."""
-        hashed_input = self._pre_hash(password)
-        return self.pwd_context.hash(hashed_input)
-    
-    def verify(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify a plain password against a hashed password."""
-        try:
-            hashed_input = self._pre_hash(plain_password)
-            return self.pwd_context.verify(hashed_input, hashed_password)
-        except Exception as e:
-            logger.error(f"Password verification error: {str(e)}")
-            return False
-
-# Create our custom handler instance
-bcrypt_handler = BcryptWithPreHash()
+def _pre_hash(password: str) -> bytes:
+    """
+    Pre-hash the password using SHA-256.
+    This converts any password length into a fixed 64-character hex string,
+    which fits perfectly within Bcrypt's 72-byte limit.
+    """
+    return hashlib.sha256(password.encode('utf-8')).hexdigest().encode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
-    return bcrypt_handler.verify(plain_password, hashed_password)
+    try:
+        # We must pre-hash the input to match how it was stored
+        hashed_input = _pre_hash(plain_password)
+        # Convert hashed_password from string to bytes if needed
+        if isinstance(hashed_password, str):
+            hashed_password_bytes = hashed_password.encode('utf-8')
+        else:
+            hashed_password_bytes = hashed_password
+            
+        return bcrypt.checkpw(hashed_input, hashed_password_bytes)
+    except Exception as e:
+        logger.error(f"Password verification error: {str(e)}")
+        return False
 
 def get_password_hash(password: str) -> str:
     """Hash a password"""
     # Enforce length limit in our code
     if len(password) > 128:
         raise ValueError("Password must be shorter than 128 characters")
-    return bcrypt_handler.hash(password)
+    
+    # 1. Pre-hash with SHA-256 to bypass length limit
+    hashed_input = _pre_hash(password)
+    
+    # 2. Salt and hash with Bcrypt directly (bypassing passlib)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(hashed_input, salt)
+    
+    # Return as string
+    return hashed.decode('utf-8')
 
 def generate_secure_password(length: int = 16) -> str:
     """Generate a secure random password"""
