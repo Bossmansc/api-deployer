@@ -18,13 +18,11 @@ from schemas import HealthCheck
 async def lifespan(app: FastAPI):
     logger.info(f"🚀 {settings.APP_NAME} v{settings.VERSION} starting up...")
     logger.info(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    # Safe database URL logging (redact password)
     if '@' in settings.DATABASE_URL:
         safe_url = settings.DATABASE_URL.split('@')[-1]
     else:
         safe_url = "sqlite/local"
     logger.info(f"📡 Database: {safe_url}")
-    
     Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created/verified")
     yield
@@ -49,13 +47,14 @@ app = FastAPI(
     ]
 )
 
+# FIXED CORS CONFIGURATION - Allow all origins for now
 app.add_middleware(
     CORSMiddleware,
-    # Allow all origins or specify your frontend URL
-    allow_origins=["*"], 
+    allow_origins=["*"],  # Changed from ["*"] to allow all
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 app.middleware("http")(rate_limit_middleware)

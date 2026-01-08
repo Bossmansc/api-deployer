@@ -1,27 +1,29 @@
 export const getApiUrl = () => {
-  // 1. Manual Override
+  // 1. Manual Override Check
   if (typeof window !== 'undefined') {
     const manualOverride = localStorage.getItem('API_URL_OVERRIDE');
-    // Clear invalid placeholders if they exist
     if (manualOverride && manualOverride.includes('YOUR-8000-URL')) {
-        localStorage.removeItem('API_URL_OVERRIDE');
+      localStorage.removeItem('API_URL_OVERRIDE');
     } else if (manualOverride) {
-        return manualOverride;
+      return manualOverride;
     }
   }
 
   if (typeof window === 'undefined') return 'http://localhost:8000';
 
-  const { hostname, protocol, port } = window.location;
+  const { hostname, protocol, port, href } = window.location;
 
-  // 2. Localhost
+  // 2. Detect blob URLs (sandboxed environments)
+  if (href.startsWith('blob:') || hostname.includes('usercontent.goog')) {
+    return 'https://cloud-deploy-api-m77w.onrender.com';
+  }
+
+  // 3. Localhost Development
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${protocol}//${hostname}:8000`;
   }
 
-  // 3. Cloud IDEs (Project IDX, Codespaces, Gitpod)
-  // Logic: Replace frontend port prefix (e.g. 3000-xyz) with backend port (8000-xyz)
-  
+  // 4. Cloud IDEs (Project IDX, Codespaces, Gitpod)
   const prefixMatch = hostname.match(/^(\d+)-/);
   if (prefixMatch) {
     const currentPort = prefixMatch[1];
@@ -39,12 +41,12 @@ export const getApiUrl = () => {
     return `${protocol}//${hostname}:8000`;
   }
 
-  // 4. Fallback (Render)
+  // 5. Production Fallback
   return 'https://cloud-deploy-api-m77w.onrender.com';
 };
 
 const API_URL = getApiUrl();
-console.log('🔗 API URL configured to:', API_URL); 
+console.log('🔗 API URL configured to:', API_URL);
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token');
@@ -61,16 +63,16 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
         ...options.headers,
       },
     });
-    
+
     const text = await res.text();
     const data = text ? JSON.parse(text) : {};
-    
+
     if (!res.ok) {
       throw {
         status: res.status,
         message: data.detail || data.message || 'Request failed',
         detail: data.detail,
-        url: url 
+        url: url
       };
     }
     return data;
@@ -89,7 +91,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const api = {
-  url: API_URL, 
+  url: API_URL,
   auth: {
     login: (creds: any) => fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(creds) }),
     register: (data: any) => fetchAPI('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
@@ -97,15 +99,15 @@ export const api = {
   },
   projects: {
     list: () => fetchAPI('/projects', { headers: getAuthHeaders() }),
-    create: (data: any) => fetchAPI('/projects', { 
-      method: 'POST', 
+    create: (data: any) => fetchAPI('/projects', {
+      method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data) 
+      body: JSON.stringify(data)
     }),
     get: (id: number) => fetchAPI(`/projects/${id}`, { headers: getAuthHeaders() }),
-    deploy: (id: number) => fetchAPI(`/projects/${id}/deploy`, { 
-      method: 'POST', 
-      headers: getAuthHeaders() 
+    deploy: (id: number) => fetchAPI(`/projects/${id}/deploy`, {
+      method: 'POST',
+      headers: getAuthHeaders()
     }),
   },
   deployments: {

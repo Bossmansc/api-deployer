@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Mail, Terminal, Settings, Save } from 'lucide-react';
+import { Lock, Mail, Terminal, Settings, Save, Globe, AlertCircle } from 'lucide-react';
 import { api } from '../utils/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -14,7 +14,6 @@ export default function Login({ onLogin, onRegister }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Settings Mode State
   const [showSettings, setShowSettings] = useState(false);
   const [customUrl, setCustomUrl] = useState(localStorage.getItem('API_URL_OVERRIDE') || '');
 
@@ -42,10 +41,13 @@ export default function Login({ onLogin, onRegister }: Props) {
     } else {
         localStorage.removeItem('API_URL_OVERRIDE');
     }
-    window.location.reload(); // Reload to apply new URL
+    window.location.reload(); 
   };
 
   if (showSettings) {
+    const currentHref = typeof window !== 'undefined' ? window.location.href : 'unknown';
+    const isBlobUrl = currentHref.startsWith('blob:');
+    
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
@@ -53,15 +55,28 @@ export default function Login({ onLogin, onRegister }: Props) {
                     <Settings className="w-6 h-6 text-emerald-500" />
                     <h2 className="text-xl font-bold">API Configuration</h2>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">
-                    If auto-detection fails, enter your backend URL manually.
-                    (e.g. <code>https://8000-idx-xyz.cluster.dev</code>)
-                </p>
+                
+                <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 space-y-2">
+                    <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">Current Browser URL</div>
+                    <div className={`text-xs font-mono break-all p-2 rounded border ${
+                        isBlobUrl 
+                            ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' 
+                            : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    }`}>
+                        {currentHref}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-2">
+                        <AlertCircle className="w-3 h-3 inline mr-1" />
+                        {isBlobUrl 
+                            ? "You're in a sandboxed environment. Enter your backend URL manually below."
+                            : "Copy this URL, paste it below, and change port 3000/5173 to 8000."}
+                    </div>
+                </div>
                 
                 <div className="space-y-4">
                     <Input 
-                        label="Backend URL"
-                        placeholder="https://..."
+                        label="Backend URL (Port 8000)"
+                        placeholder="https://cloud-deploy-api-m77w.onrender.com"
                         value={customUrl}
                         onChange={(e) => setCustomUrl(e.target.value)}
                     />

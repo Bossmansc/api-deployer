@@ -58,8 +58,6 @@ export default function CreateProject({ onBack, onCreated }: Props) {
                 <p className="font-semibold break-words">
                   {error.message || "Failed to create project"}
                 </p>
-                
-                {/* Diagnostics Section */}
                 <div className="mt-2 pt-2 border-t border-red-500/20 text-xs font-mono space-y-1 opacity-90">
                   <div className="flex justify-between">
                     <span>Status:</span>
@@ -105,7 +103,6 @@ export default function CreateProject({ onBack, onCreated }: Props) {
             Create Project
           </Button>
 
-          {/* Connection Info Footer */}
           <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-slate-600 bg-slate-950/50 p-2 rounded-lg border border-slate-800">
             <Wifi className={`w-3 h-3 ${error ? 'text-red-500' : 'text-emerald-500'}`} />
             <span>API Target:</span>

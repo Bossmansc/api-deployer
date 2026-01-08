@@ -30,13 +30,12 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
     fetchProject();
   }, [projectId]);
 
-  // Poll for logs if there is an active deployment that isn't finished
   useEffect(() => {
     let interval: any;
+    // Poll for updates if a deployment is in progress
     if (activeDeployment && !['success', 'failed', 'cancelled'].includes(activeDeployment.status)) {
       interval = setInterval(async () => {
         try {
-          // Refresh deployment status
           const data = await api.projects.get(projectId);
           const updatedDeployment = data.deployments.find((d: any) => d.id === activeDeployment.id);
           if (updatedDeployment) {
@@ -48,13 +47,12 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
     return () => clearInterval(interval);
   }, [activeDeployment, projectId]);
 
-
   const handleDeploy = async () => {
     setDeploying(true);
     try {
       const deployment = await api.projects.deploy(projectId);
       setActiveDeployment(deployment);
-      fetchProject(); // Refresh list
+      fetchProject(); 
     } catch (err) {
       console.error(err);
       alert('Failed to trigger deployment');
@@ -76,6 +74,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -94,7 +93,7 @@ export default function ProjectDetails({ projectId, onBack }: Props) {
                 <Play className="w-4 h-4 mr-2" /> Deploy Now
               </Button>
             </div>
-            
+
             <div className="bg-slate-950 rounded-lg p-4 font-mono text-sm text-slate-300 border border-slate-800">
               <div className="flex items-center text-slate-500 mb-2 pb-2 border-b border-slate-800">
                 <Terminal className="w-4 h-4 mr-2" />
