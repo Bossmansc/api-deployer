@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, Enum
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 import enum
 from database import Base
 
@@ -30,6 +30,14 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     owner = relationship("User", back_populates="projects")
     deployments = relationship("Deployment", back_populates="project")
+    
+    @validates('github_url')
+    def validate_github_url(self, key, value):
+        """Convert HttpUrl to string before storing in database"""
+        # If value has a __str__ method (like Pydantic's HttpUrl), convert it
+        if hasattr(value, '__str__'):
+            return str(value)
+        return value
 
 class DeploymentStatus(str, enum.Enum):
     PENDING = "pending"

@@ -26,10 +26,10 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Convert HttpUrl to string for database storage
+    # Create project with explicit string conversion
     db_project = Project(
         name=project.name,
-        github_url=str(project.github_url),  # Convert HttpUrl to string directly
+        github_url=str(project.github_url),  # Explicitly convert to string
         user_id=current_user.id
     )
     db.add(db_project)
@@ -71,9 +71,9 @@ def update_project(
             detail="Project not found"
         )
     
-    # Update fields directly
+    # Update fields with explicit string conversion
     project.name = project_update.name
-    project.github_url = str(project_update.github_url)  # Convert HttpUrl to string
+    project.github_url = str(project_update.github_url)  # Explicitly convert to string
     
     db.commit()
     db.refresh(project)
