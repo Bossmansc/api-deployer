@@ -25,7 +25,8 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     github_url = Column(String, nullable=False)
-    status = Column(Enum(ProjectStatus), default=ProjectStatus.ACTIVE)
+    # Use values_callable to force SQLAlchemy to use the enum values (lowercase) instead of names (uppercase)
+    status = Column(Enum(ProjectStatus, values_callable=lambda obj: [e.value for e in obj]), default=ProjectStatus.ACTIVE)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     owner = relationship("User", back_populates="projects")
@@ -66,7 +67,8 @@ class Deployment(Base):
     __tablename__ = "deployments"
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    status = Column(Enum(DeploymentStatus), default=DeploymentStatus.PENDING)
+    # Use values_callable for DeploymentStatus as well
+    status = Column(Enum(DeploymentStatus, values_callable=lambda obj: [e.value for e in obj]), default=DeploymentStatus.PENDING)
     logs = Column(Text, default="")
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)

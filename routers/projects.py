@@ -31,7 +31,8 @@ def create_project(
         name=project.name,
         github_url=str(project.github_url),  # Explicitly convert to string
         user_id=current_user.id,
-        status=ProjectStatus.ACTIVE  # Explicitly set the enum value
+        # We pass the Enum member. The model configuration now ensures the value "active" is stored.
+        status=ProjectStatus.ACTIVE 
     )
     db.add(db_project)
     db.commit()
