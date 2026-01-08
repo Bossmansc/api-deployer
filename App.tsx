@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Terminal, Server, Shield, Database, Activity, Box, Lock, Zap, Cloud, Code, 
   LogOut, Plus, Play, RefreshCw, LayoutDashboard, Settings, Github, AlertCircle, 
-  CheckCircle2, XCircle, Loader2, ChevronRight, ArrowLeft
+  CheckCircle2, XCircle, Loader2, ChevronRight, ArrowLeft, Wifi
 } from 'lucide-react';
 
 const DEFAULT_API_URL = "https://cloud-deploy-api.onrender.com";
@@ -29,11 +29,29 @@ interface Deployment {
   logs?: string;
 }
 
+// --- Utility: Format Error Messages ---
+const formatError = (error: any): string => {
+  if (!error) return "An unknown error occurred";
+  if (typeof error === 'string') return error;
+  
+  if (Array.isArray(error)) {
+    return error.map(e => e.msg || JSON.stringify(e)).join(', ');
+  }
+  
+  if (typeof error === 'object') {
+    if (error.detail) return formatError(error.detail);
+    if (error.message) return error.message;
+  }
+  
+  return JSON.stringify(error);
+};
+
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
   const [notification, setNotification] = useState<{msg: string, type: 'error' | 'success'} | null>(null);
+  
   const [apiUrl, setApiUrl] = useState<string>(() => {
     const saved = localStorage.getItem('api_url');
     if (saved === "http://localhost:8000") return DEFAULT_API_URL;
@@ -98,6 +116,7 @@ export default function App() {
           {notification.msg}
         </div>
       )}
+
       {view === 'landing' && (
         <LandingView 
           onLogin={() => setView('login')} 
@@ -106,15 +125,15 @@ export default function App() {
           onUpdateApiUrl={updateApiUrl}
         />
       )}
-      {view === 'login' && <AuthForm mode="login" apiUrl={apiUrl} onBack={() => setView('landing')} onSuccess={login} onError={(m: string) => showNotification(m, 'error')} />}
-      {view === 'register' && <AuthForm mode="register" apiUrl={apiUrl} onBack={() => setView('landing')} onSuccess={login} onError={(m: string) => showNotification(m, 'error')} />}
+      {view === 'login' && <AuthForm mode="login" apiUrl={apiUrl} onBack={() => setView('landing')} onSuccess={login} onError={(m: any) => showNotification(formatError(m), 'error')} />}
+      {view === 'register' && <AuthForm mode="register" apiUrl={apiUrl} onBack={() => setView('landing')} onSuccess={login} onError={(m: any) => showNotification(formatError(m), 'error')} />}
       {view === 'dashboard' && token && (
         <Dashboard 
           token={token} 
           user={user} 
           apiUrl={apiUrl}
           onLogout={logout} 
-          onError={(m: string) => showNotification(m, 'error')}
+          onError={(m: any) => showNotification(formatError(m), 'error')}
           onSuccess={(m: string) => showNotification(m, 'success')}
         />
       )}
@@ -161,7 +180,7 @@ function Dashboard({ token, user, apiUrl, onLogout, onError, onSuccess }: any) {
         setRefreshTrigger(prev => prev + 1);
       } else {
         const err = await res.json();
-        onError(err.detail || "Failed to create project");
+        onError(err); // Pass raw object, formatError in parent handles it
       }
     } catch (e) {
       onError("Network error");
@@ -192,6 +211,7 @@ function Dashboard({ token, user, apiUrl, onLogout, onError, onSuccess }: any) {
           </div>
         </div>
       </header>
+
       <main className="flex-1 overflow-auto bg-slate-950 p-4 sm:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="space-y-6">
@@ -202,6 +222,7 @@ function Dashboard({ token, user, apiUrl, onLogout, onError, onSuccess }: any) {
               </h2>
               <NewProjectModal onCreate={createProject} />
             </div>
+
             {loading && projects.length === 0 ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
             ) : projects.length === 0 ? (
@@ -429,6 +450,22 @@ function AuthForm({ mode, apiUrl, onBack, onSuccess, onError }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  
+  // Quick health check on mount
+  useEffect(() => {
+    const checkApi = async () => {
+      setIsChecking(true);
+      try {
+        await fetch(`${apiUrl}/health`);
+      } catch (e) {
+        // Silent fail, just for UI status
+      } finally {
+        setIsChecking(false);
+      }
+    }
+    checkApi();
+  }, [apiUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,6 +485,7 @@ function AuthForm({ mode, apiUrl, onBack, onSuccess, onError }: any) {
         if (mode === 'login') {
           onSuccess(data.access_token);
         } else {
+          // Auto login after register
           const loginRes = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -457,11 +495,12 @@ function AuthForm({ mode, apiUrl, onBack, onSuccess, onError }: any) {
             const loginData = await loginRes.json();
             onSuccess(loginData.access_token);
           } else {
-            onSuccess(null); 
+            onSuccess(null); // Just go to login
           }
         }
       } else {
-        onError(data.detail || "Authentication failed");
+        // Pass the raw data object to onError, let parent handle formatting
+        onError(data.detail || data);
       }
     } catch (err) {
       onError("Network error. Is the backend running? check API settings.");
@@ -521,8 +560,9 @@ function AuthForm({ mode, apiUrl, onBack, onSuccess, onError }: any) {
             </button>
           </form>
           
-           <div className="mt-4 text-center">
-            <span className="text-xs text-slate-500">API: <code className="bg-slate-950 px-1 py-0.5 rounded border border-slate-800">{apiUrl}</code></span>
+           <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
+             <Wifi className={`w-3 h-3 ${isChecking ? 'text-yellow-500 animate-pulse' : 'text-emerald-500'}`} />
+             Connected to: <code className="bg-slate-950 px-1 py-0.5 rounded border border-slate-800 truncate max-w-[150px]">{apiUrl}</code>
            </div>
         </div>
       </div>
