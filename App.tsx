@@ -1,1 +1,1 @@
-sqlalchemy.exc.ProgrammingError: (psycopg2.ProgrammingError) can't adapt type 'pydantic_core._pydantic_core.Url'
+sqlalchemy.exc.DataError: (psycopg2.errors.InvalidTextRepresentation) invalid input value for enum projectstatus: "ACTIVE"

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from models import Project, User
+from models import Project, User, ProjectStatus
 from schemas import ProjectCreate, Project as ProjectSchema, ProjectWithDeployments
 from dependencies import get_current_user
 
@@ -30,7 +30,8 @@ def create_project(
     db_project = Project(
         name=project.name,
         github_url=str(project.github_url),  # Explicitly convert to string
-        user_id=current_user.id
+        user_id=current_user.id,
+        status=ProjectStatus.ACTIVE  # Explicitly set the enum value
     )
     db.add(db_project)
     db.commit()

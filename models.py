@@ -38,6 +38,21 @@ class Project(Base):
         if hasattr(value, '__str__'):
             return str(value)
         return value
+    
+    @validates('status')
+    def validate_status(self, key, value):
+        """Ensure status is a valid ProjectStatus enum value"""
+        if isinstance(value, str):
+            # Convert string to enum
+            try:
+                return ProjectStatus(value.lower())
+            except ValueError:
+                # If invalid, return default
+                return ProjectStatus.ACTIVE
+        elif isinstance(value, ProjectStatus):
+            return value
+        else:
+            return ProjectStatus.ACTIVE
 
 class DeploymentStatus(str, enum.Enum):
     PENDING = "pending"
