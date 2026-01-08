@@ -3,18 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from datetime import datetime
 import os
-
 from database import engine, Base
 from config import settings
 from routers import auth, projects, deployments, users, health
-from routers.admin_updated import router as admin_router
+from routers import admin as admin_router
 from routers.cache import router as cache_router
 from routers.analytics import router as analytics_router
 from middleware.rate_limiter import rate_limit_middleware
 from middleware.request_logger import request_logger_middleware, error_handler_middleware
 from utils.logger import logger, setup_logger
 from schemas import HealthCheck
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,15 +30,13 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("👋 Shutting down...")
 
-
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     description="""
     API Gateway for Cloud Deployment Platform
-    
+
     ## Features
-    
     - 🔐 **JWT Authentication** with refresh tokens
     - 📦 **Project management** (CRUD operations)
     - 🚀 **Deployment simulation** with background tasks
@@ -54,20 +50,17 @@ app = FastAPI(
     - 📊 **Analytics** & reporting
     - 💾 **Redis caching** for performance
     - 📝 **Request logging** & monitoring
-    
+
     ## Authentication
-    
     Most endpoints require JWT authentication. 
     Register at `/auth/register` and login at `/auth/login` to get access tokens.
-    
+
     ## Rate Limits
-    
     - 60 requests per minute per IP address
     - Health endpoints are not rate limited
     - Rate limit headers included in responses
-    
+
     ## Admin Access
-    
     First registered user automatically becomes admin.
     Admin endpoints require admin privileges.
     """,
@@ -112,10 +105,9 @@ app.include_router(projects.router)
 app.include_router(deployments.router)
 app.include_router(users.router)
 app.include_router(health.router)
-app.include_router(admin_router)
+app.include_router(admin_router.router)
 app.include_router(cache_router)
 app.include_router(analytics_router)
-
 
 @app.get("/", tags=["root"])
 def read_root():
@@ -138,7 +130,6 @@ def read_root():
         "status": "operational"
     }
 
-
 @app.get("/info")
 def get_api_info():
     """Get API information"""
@@ -159,19 +150,15 @@ def get_api_info():
         }
     }
 
-
 @app.get("/openapi.json", include_in_schema=False)
 def get_openapi():
     """Get OpenAPI schema"""
     return app.openapi()
 
-
 if __name__ == "__main__":
     import uvicorn
-    
     # Get port from environment variable (for Render deployment)
     port = int(os.getenv("PORT", 8000))
-    
     uvicorn.run(
         "main_complete:app",
         host="0.0.0.0",

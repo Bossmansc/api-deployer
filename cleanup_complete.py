@@ -19,7 +19,7 @@ KEEP_FILES = [
     # Core modules
     "config.py",
     "database.py",
-    "models_updated.py",
+    "models.py",
     "schemas.py",
     "dependencies.py",
     
@@ -29,7 +29,7 @@ KEEP_FILES = [
     "routers/deployments.py",
     "routers/users.py",
     "routers/health.py",
-    "routers/admin_updated.py",
+    "routers/admin.py",
     "routers/cache.py",
     "routers/analytics.py",
     
@@ -57,6 +57,7 @@ KEEP_FILES = [
     # Deployment
     "create_tables.py",
     ".env.example",
+    "render.yaml",
     
     # Kubernetes
     "kubernetes/deployment.yaml",
@@ -84,8 +85,8 @@ DELETE_FILES = [
     "README.md",
     "README_updated.md",
     "test_api.py",
-    "models.py",
-    "routers/admin.py",
+    "models_updated.py",
+    "routers/admin_updated.py",
     "cleanup.py",
 ]
 
@@ -108,14 +109,14 @@ def cleanup_files():
                 deleted_count += 1
             except Exception as e:
                 print(f"⚠️  Error deleting {file_path}: {e}")
-    
+                
     # Verify kept files exist
     for file_path in KEEP_FILES:
         if os.path.exists(file_path):
             kept_count += 1
         else:
             print(f"⚠️  Warning: Expected file not found: {file_path}")
-    
+            
     print(f"\n✅ Cleanup complete!")
     print(f"📊 Deleted {deleted_count} files")
     print(f"📊 Kept {kept_count} files")
@@ -137,20 +138,20 @@ def cleanup_files():
                 print(f"📁 Created: {init_file}")
             except Exception as e:
                 print(f"⚠️  Error creating {init_file}: {e}")
-    
+
     # Create logs directory
     logs_dir = "logs"
     if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
         print(f"📁 Created: {logs_dir}/")
-    
+        
     # Create nginx directories
     nginx_dirs = ["nginx/ssl", "nginx/logs"]
     for nginx_dir in nginx_dirs:
         if not os.path.exists(nginx_dir):
             os.makedirs(nginx_dir, exist_ok=True)
             print(f"📁 Created: {nginx_dir}/")
-    
+            
     print("\n🎯 Project structure is now clean and organized!")
     print("🚀 Use 'python run_complete.py' to start the application")
     print("🐳 Use 'docker-compose -f docker-compose.complete.yml up' for Docker")

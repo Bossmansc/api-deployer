@@ -3,14 +3,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 from datetime import datetime, timedelta
 from typing import List, Optional
-
 from database import get_db
 from dependencies import get_current_user, require_admin
-from models_updated import User, Project, Deployment, DeploymentStatus
+from models import User, Project, Deployment, DeploymentStatus
 from utils.validation import validator
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
-
 
 @router.get("/user/stats")
 def get_user_analytics(
@@ -20,7 +18,6 @@ def get_user_analytics(
     current_user: User = Depends(get_current_user)
 ):
     """Get analytics for the current user"""
-    
     # Set default date range (last 30 days)
     if not end_date:
         end_date = datetime.utcnow().isoformat()
@@ -102,14 +99,12 @@ def get_user_analytics(
         ]
     }
 
-
 @router.get("/admin/overview")
 def get_admin_overview(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
     """Get admin overview analytics"""
-    
     # Total statistics
     total_users = db.query(User).count()
     total_projects = db.query(Project).count()
@@ -125,7 +120,6 @@ def get_admin_overview(
     successful_deployments = db.query(Deployment).filter(
         Deployment.status == DeploymentStatus.SUCCESS
     ).count()
-    
     success_rate = (successful_deployments / total_deployments * 100) if total_deployments > 0 else 0
     
     # Monthly growth
@@ -169,7 +163,7 @@ def get_admin_overview(
         ).count()
         
         deployment_trend[date_str] = daily_deployments
-    
+        
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "overview": {
@@ -195,7 +189,6 @@ def get_admin_overview(
         "deployment_trend_last_7_days": deployment_trend
     }
 
-
 @router.get("/project/{project_id}")
 def get_project_analytics(
     project_id: int,
@@ -205,7 +198,6 @@ def get_project_analytics(
     current_user: User = Depends(get_current_user)
 ):
     """Get analytics for a specific project"""
-    
     # Check if project exists and user has access
     project = db.query(Project).filter(
         Project.id == project_id,
@@ -220,12 +212,12 @@ def get_project_analytics(
         end_date = datetime.utcnow().isoformat()
     if not start_date:
         start_date = project.created_at.isoformat()
-    
+        
     # Validate date range
     is_valid, error = validator.validate_date_range(start_date, end_date)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error)
-    
+        
     # Convert dates
     start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
     end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
@@ -250,7 +242,7 @@ def get_project_analytics(
         if deployment.completed_at and deployment.started_at:
             duration = (deployment.completed_at - deployment.started_at).total_seconds()
             deployment_durations.append(duration)
-    
+            
     # Success rate
     successful_deployments = status_counts.get('success', 0)
     success_rate = (successful_deployments / total_deployments * 100) if total_deployments > 0 else 0
@@ -263,7 +255,7 @@ def get_project_analytics(
     for deployment in deployments:
         month_key = deployment.started_at.strftime("%Y-%m")
         monthly_deployments[month_key] = monthly_deployments.get(month_key, 0) + 1
-    
+        
     # Recent deployments (last 5)
     recent_deployments = [
         {
