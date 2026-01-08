@@ -2,26 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
-
 from database import get_db
 from models import User, RefreshToken
 from schemas import UserCreate, User as UserSchema, Token, RefreshTokenCreate
 from dependencies import create_access_token, create_refresh_token, verify_refresh_token
 from config import settings
+from utils.security import verify_password, get_password_hash
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 security = HTTPBearer()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
 
 @router.post("/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -33,19 +22,16 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # Create new user
+    # Create new user with pre-hashed password
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
         hashed_password=hashed_password
     )
-    
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
     return db_user
-
 
 @router.post("/login", response_model=Token)
 def login(user: UserCreate, db: Session = Depends(get_db)):
@@ -72,7 +58,6 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
         user_id=db_user.id,
         expires_at=expires_at
     )
-    
     db.add(db_refresh_token)
     db.commit()
     
@@ -81,7 +66,6 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
-
 
 @router.post("/refresh", response_model=Token)
 def refresh(token_data: RefreshTokenCreate, db: Session = Depends(get_db)):
@@ -99,7 +83,6 @@ def refresh(token_data: RefreshTokenCreate, db: Session = Depends(get_db)):
         user_id=user.id,
         expires_at=expires_at
     )
-    
     db.add(db_refresh_token)
     db.commit()
     
@@ -108,7 +91,6 @@ def refresh(token_data: RefreshTokenCreate, db: Session = Depends(get_db)):
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
-
 
 @router.post("/logout")
 def logout(
@@ -119,5 +101,4 @@ def logout(
     # Remove refresh token from database
     db.query(RefreshToken).filter(RefreshToken.token == token_data.refresh_token).delete()
     db.commit()
-    
     return {"message": "Successfully logged out"}

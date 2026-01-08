@@ -8,6 +8,7 @@ from database import get_db
 from models import User, RefreshToken
 from schemas import TokenData
 from config import settings
+from utils.security import verify_password
 
 security = HTTPBearer()
 
