@@ -19,13 +19,13 @@ COPY . .
 
 # Create production .env file
 RUN echo "ENVIRONMENT=production" > .env
-RUN echo "PORT=8000" >> .env
+RUN echo "PORT=10000" >> .env  # Render uses PORT 10000 by default
 
 RUN echo "#!/bin/bash\n\
 echo 'Running database migrations...'\n\
 alembic upgrade head || python create_tables.py\n\
 echo 'Starting server on port \$PORT...'\n\
-uvicorn main:app --host 0.0.0.0 --port \${PORT:-8000} --workers 4" > start.sh
+uvicorn main:app --host 0.0.0.0 --port \${PORT:-10000} --workers 4" > start.sh
 
 RUN chmod +x start.sh
 
