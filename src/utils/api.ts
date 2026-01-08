@@ -19,12 +19,12 @@ const getApiUrl = () => {
     }
   }
 
-  // Handle port mapping if visible in URL
+  // 3. Port mapping fallback
   if (port && ['3000', '5173', '8080'].includes(port)) {
     return `${protocol}//${hostname}:8000`;
   }
 
-  // 3. Environment Variable Fallback
+  // 4. Environment Variable
   try {
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) {
@@ -33,7 +33,7 @@ const getApiUrl = () => {
     }
   } catch (e) {}
 
-  // 4. Production Fallback (Your Render URL)
+  // 5. Production Fallback
   return 'https://cloud-deploy-api-m77w.onrender.com';
 };
 
