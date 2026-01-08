@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Github, ExternalLink, RefreshCw } from 'lucide-react';
+import { Plus, Github, RefreshCw, LogOut } from 'lucide-react';
 import { api } from '../utils/api';
 import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -12,7 +12,12 @@ interface Project {
   created_at: string;
 }
 
-export default function Dashboard({ onSelectProject }: { onSelectProject: (id: number) => void }) {
+interface Props {
+  onSelectProject: (id: number) => void;
+  onLogout: () => void;
+}
+
+export default function Dashboard({ onSelectProject, onLogout }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +43,18 @@ export default function Dashboard({ onSelectProject }: { onSelectProject: (id: n
           <h1 className="text-3xl font-bold text-white mb-2">Projects</h1>
           <p className="text-slate-400">Manage and deploy your applications</p>
         </div>
-        <Button onClick={() => onSelectProject(-1)}>
-          <Plus className="w-4 h-4 mr-2" /> New Project
-        </Button>
+        <div className="flex items-center space-x-3">
+            <Button onClick={() => onSelectProject(-1)}>
+            <Plus className="w-4 h-4 mr-2" /> New Project
+            </Button>
+            <button 
+                onClick={onLogout}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                title="Logout"
+            >
+                <LogOut className="w-5 h-5" />
+            </button>
+        </div>
       </div>
 
       {loading ? (
@@ -72,7 +86,7 @@ export default function Dashboard({ onSelectProject }: { onSelectProject: (id: n
               <h3 className="text-lg font-semibold text-white mb-1">{project.name}</h3>
               <p className="text-sm text-slate-400 truncate mb-4">{project.github_url}</p>
               <div className="flex items-center text-xs text-slate-500 pt-4 border-t border-slate-800">
-                <ClockIcon className="w-3 h-3 mr-1" />
+                <span className="w-2 h-2 rounded-full bg-slate-600 mr-2"></span>
                 Created {new Date(project.created_at).toLocaleDateString()}
               </div>
             </div>
@@ -80,25 +94,5 @@ export default function Dashboard({ onSelectProject }: { onSelectProject: (id: n
         </div>
       )}
     </div>
-  );
-}
-
-function ClockIcon(props: any) {
-  return (
-    <svg 
-      {...props}
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
   );
 }

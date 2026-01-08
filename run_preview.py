@@ -2,8 +2,10 @@ import uvicorn
 import os
 import sys
 
-# Add current directory to path
+# Ensure current directory is in python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+print("🔍 Initializing Backend...")
 
 try:
     from main_complete import app
@@ -13,15 +15,15 @@ except ImportError as e:
     sys.exit(1)
 
 if __name__ == "__main__":
+    # Project IDX and other cloud IDEs set PORT env var
     port = int(os.getenv("PORT", 8000))
-    print("="*50)
-    print(f"🚀 STARTING BACKEND PREVIEW")
-    print(f"📡 PORT: {port}")
-    print(f"🌍 HOST: 0.0.0.0 (Publicly accessible)")
-    print("="*50)
+    
+    print("="*60)
+    print(f"🚀 CLOUD DEPLOY BACKEND RUNNING")
+    print(f"📡 LISTENING ON: 0.0.0.0:{port}")
+    print("="*60)
     
     try:
-        # host="0.0.0.0" is critical for Cloud IDEs
         uvicorn.run(
             app, 
             host="0.0.0.0", 

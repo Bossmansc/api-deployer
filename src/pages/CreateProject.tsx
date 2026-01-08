@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Rocket, AlertCircle, Info } from 'lucide-react';
+import { ArrowLeft, Rocket, AlertCircle, Info, Wifi } from 'lucide-react';
 import { api } from '../utils/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -54,17 +54,29 @@ export default function CreateProject({ onBack, onCreated }: Props) {
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-sm">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-              <div>
+              <div className="w-full">
                 <p className="font-semibold break-words">
                   {error.message || "Failed to create project"}
                 </p>
-                {error.isNetworkError && (
-                  <div className="mt-2 text-xs bg-red-950/50 p-2 rounded">
-                    <strong>Connection Failed:</strong> Could not reach the backend.
-                    <br />
-                    Target: <span className="font-mono">{error.url}</span>
+                
+                {/* Diagnostics Section */}
+                <div className="mt-2 pt-2 border-t border-red-500/20 text-xs font-mono space-y-1 opacity-90">
+                  <div className="flex justify-between">
+                    <span>Status:</span>
+                    <span>{error.status || 'Network Error'}</span>
                   </div>
-                )}
+                  <div className="flex flex-col">
+                    <span>Target URL:</span>
+                    <span className="break-all bg-red-950/50 p-1 rounded mt-1">
+                      {error.url || api.url}
+                    </span>
+                  </div>
+                  {error.isNetworkError && (
+                    <p className="mt-2 text-red-300 italic">
+                      Tip: Backend might be down or blocked. Check if port 8000 is active.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -93,9 +105,13 @@ export default function CreateProject({ onBack, onCreated }: Props) {
             Create Project
           </Button>
 
-          <div className="flex items-center justify-center text-xs text-slate-600 mt-4">
-            <Info className="w-3 h-3 mr-1" />
-            Connecting to: <span className="ml-1 font-mono text-slate-500">{api.url}</span>
+          {/* Connection Info Footer */}
+          <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-slate-600 bg-slate-950/50 p-2 rounded-lg border border-slate-800">
+            <Wifi className={`w-3 h-3 ${error ? 'text-red-500' : 'text-emerald-500'}`} />
+            <span>API Target:</span>
+            <span className="font-mono text-slate-400 max-w-[200px] truncate" title={api.url}>
+              {api.url}
+            </span>
           </div>
         </form>
       </div>

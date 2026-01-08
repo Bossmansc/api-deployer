@@ -1,51 +1,45 @@
 export const getApiUrl = () => {
-  // 1. Manual Override (useful for debugging)
+  // 1. Manual Override
   if (typeof window !== 'undefined') {
     const manualOverride = localStorage.getItem('API_URL_OVERRIDE');
-    if (manualOverride) return manualOverride;
+    // Clear invalid placeholders if they exist
+    if (manualOverride && manualOverride.includes('YOUR-8000-URL')) {
+        localStorage.removeItem('API_URL_OVERRIDE');
+    } else if (manualOverride) {
+        return manualOverride;
+    }
   }
 
   if (typeof window === 'undefined') return 'http://localhost:8000';
 
-  const { hostname, protocol, port, origin } = window.location;
+  const { hostname, protocol, port } = window.location;
 
-  // 2. Localhost Development
+  // 2. Localhost
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${protocol}//${hostname}:8000`;
   }
 
   // 3. Cloud IDEs (Project IDX, Codespaces, Gitpod)
-  // Pattern A: Port at start (e.g. 3000-xyz.idx.dev -> 8000-xyz.idx.dev)
-  const portRegex = /^(\d+)-/;
-  const match = hostname.match(portRegex);
-  if (match) {
-    const currentPort = match[1];
-    if (['3000', '5173', '8080', '4200'].includes(currentPort)) {
+  // Logic: Replace frontend port prefix (e.g. 3000-xyz) with backend port (8000-xyz)
+  
+  const prefixMatch = hostname.match(/^(\d+)-/);
+  if (prefixMatch) {
+    const currentPort = prefixMatch[1];
+    if (['3000', '3001', '3002', '5173', '8080', '4200'].includes(currentPort)) {
       const newHostname = hostname.replace(currentPort + '-', '8000-');
       return `${protocol}//${newHostname}`;
     }
   }
 
-  // Pattern B: Port in middle/end (e.g. project-3000.dev -> project-8000.dev)
   if (hostname.includes('-3000')) {
     return `${protocol}//${hostname.replace('-3000', '-8000')}`;
   }
 
-  // 4. Standard Port Mapping (e.g. domain.com:3000 -> domain.com:8000)
   if (port && ['3000', '5173', '8080'].includes(port)) {
-    return origin.replace(port, '8000');
+    return `${protocol}//${hostname}:8000`;
   }
 
-  // 5. Environment Variable (Build time)
-  try {
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) {
-      // @ts-ignore
-      return process.env.REACT_APP_API_URL;
-    }
-  } catch (e) {}
-
-  // 6. Production Fallback (Render)
+  // 4. Fallback (Render)
   return 'https://cloud-deploy-api-m77w.onrender.com';
 };
 
@@ -57,7 +51,6 @@ export const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// Generic fetch wrapper to handle errors consistently
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_URL}${endpoint}`;
   try {
@@ -69,7 +62,8 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
       },
     });
     
-    const data = await res.json().catch(() => ({})); 
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
     
     if (!res.ok) {
       throw {
@@ -81,7 +75,6 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
     }
     return data;
   } catch (error: any) {
-    // Handle Network Errors (Server down, CORS, Wrong URL)
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       console.error(`❌ Network Error connecting to: ${url}`);
       throw {
@@ -96,7 +89,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const api = {
-  url: API_URL, // Export base URL for UI display
+  url: API_URL, 
   auth: {
     login: (creds: any) => fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(creds) }),
     register: (data: any) => fetchAPI('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
