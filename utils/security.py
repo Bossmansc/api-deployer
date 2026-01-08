@@ -9,14 +9,12 @@ import hashlib
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Configure bcrypt with a custom handler that pre-hashes passwords
-# This prevents the 72-byte limit error during passlib initialization
+# Configure bcrypt
+# We remove specific bcrypt configuration parameters that might cause KeyErrors in some passlib versions.
+# We handle the length limit manually via pre-hashing with SHA-256.
 pwd_context = CryptContext(
     schemes=["bcrypt"], 
-    deprecated="auto",
-    # Configure bcrypt to truncate long passwords (we'll handle pre-hashing ourselves)
-    bcrypt__ident="2b",  # Use the latest bcrypt version
-    bcrypt__max_password_size=128,  # Allow longer passwords
+    deprecated="auto"
 )
 
 def _pre_hash(password: str) -> str:
