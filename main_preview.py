@@ -220,7 +220,7 @@ def create_project(
 ):
     new_project = Project(
         name=project.name,
-        github_url=str(project.github_url),
+        github_url=str(project.github_url),  # Convert HttpUrl to string
         user_id=current_user.id
     )
     db.projects.append(new_project)
