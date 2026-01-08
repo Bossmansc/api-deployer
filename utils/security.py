@@ -26,19 +26,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             hashed_password_bytes = hashed_password
 
         # 1. Try verifying with pre-hashing (Current Standard)
-        # This handles the SHA-256 pre-hashed passwords
+        # This handles new accounts created after the fix
         try:
             hashed_input = _pre_hash(plain_password)
             if bcrypt.checkpw(hashed_input, hashed_password_bytes):
                 return True
         except Exception:
-            # Continue to legacy method if this fails (e.g. salt mismatch)
             pass
 
         # 2. Try verifying without pre-hashing (Legacy Support)
-        # This handles old passwords created before the fix.
-        # We wrap this in try/except because bcrypt might complain about long passwords
-        # if we pass them raw.
+        # This handles old accounts created before the fix
         try:
             # Only attempt raw check if length is safe for bcrypt (72 bytes)
             if len(plain_password.encode('utf-8')) <= 72:
@@ -61,7 +58,7 @@ def get_password_hash(password: str) -> str:
     # 1. Pre-hash with SHA-256 to bypass length limit
     hashed_input = _pre_hash(password)
     
-    # 2. Salt and hash with Bcrypt directly (bypassing passlib)
+    # 2. Salt and hash with Bcrypt directly
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(hashed_input, salt)
     
@@ -79,7 +76,6 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
     
-    # Updated limit to 128 characters matching schema
     if len(password) > 128:
         return False, "Password must be shorter than 128 characters"
         
@@ -102,10 +98,7 @@ def sanitize_input(input_string: str) -> str:
     """Basic input sanitization"""
     if not input_string:
         return ""
-    # Remove potentially dangerous characters
     dangerous_chars = ['<', '>', '"', "'", ';', '(', ')', '&', '|']
     for char in dangerous_chars:
         input_string = input_string.replace(char, '')
-    # Trim whitespace
-    input_string = input_string.strip()
-    return input_string
+    return input_string.strip()

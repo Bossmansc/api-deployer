@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:8000'; // Adjust if backend URL differs
+// Updated to point to your actual Render backend
+const API_URL = 'https://cloud-deploy-api.onrender.com'; 
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token');
