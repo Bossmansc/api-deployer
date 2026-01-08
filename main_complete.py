@@ -16,18 +16,18 @@ from schemas import HealthCheck
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info(f"🚀 {settings.APP_NAME} v{settings.VERSION} starting up...")
     logger.info(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    logger.info(f"📡 Database: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
+    # Safe database URL logging (redact password)
+    if '@' in settings.DATABASE_URL:
+        safe_url = settings.DATABASE_URL.split('@')[-1]
+    else:
+        safe_url = "sqlite/local"
+    logger.info(f"📡 Database: {safe_url}")
     
-    # Create tables
     Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created/verified")
-    
     yield
-    
-    # Shutdown
     logger.info("👋 Shutting down...")
 
 app = FastAPI(
@@ -41,38 +41,27 @@ app = FastAPI(
     lifespan=lifespan,
     contact={
         "name": "Cloud Deploy Support",
-        "email": "support@clouddeploy.example.com",
-        "url": "https://clouddeploy.example.com/support"
+        "email": "support@clouddeploy.example.com"
     },
-    license_info={
-        "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
-    },
-    terms_of_service="https://clouddeploy.example.com/terms",
     servers=[
         {"url": "http://localhost:8000", "description": "Development server"},
-        {"url": "https://api.clouddeploy.example.com", "description": "Production server"}
+        {"url": "https://cloud-deploy-api-m77w.onrender.com", "description": "Production server"}
     ]
 )
 
-# Configure CORS
-# Updated to allow all origins in sandbox/dev to prevent "Is backend running?" errors
 app.add_middleware(
     CORSMiddleware,
+    # Allow all origins or specify your frontend URL
     allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add rate limiting middleware
 app.middleware("http")(rate_limit_middleware)
-
-# Add request logging middleware
 app.middleware("http")(request_logger_middleware)
 app.middleware("http")(error_handler_middleware)
 
-# Include routers
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(deployments.router)
@@ -110,27 +99,13 @@ def get_api_info():
         "name": settings.APP_NAME,
         "version": settings.VERSION,
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "uptime": "0s",  # Would need to track startup time
         "support": {
-            "email": "support@clouddeploy.example.com",
-            "documentation": "https://docs.clouddeploy.example.com",
-            "status": "https://status.clouddeploy.example.com"
-        },
-        "limits": {
-            "rate_limit": "60 requests per minute",
-            "max_projects_per_user": 100,
-            "max_deployments_per_project": 1000
+            "docs": "https://cloud-deploy-api-m77w.onrender.com/docs"
         }
     }
 
-@app.get("/openapi.json", include_in_schema=False)
-def get_openapi():
-    """Get OpenAPI schema"""
-    return app.openapi()
-
 if __name__ == "__main__":
     import uvicorn
-    # Get port from environment variable (for Render deployment)
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main_complete:app",

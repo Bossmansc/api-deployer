@@ -9,22 +9,17 @@ const getApiUrl = () => {
   }
 
   // 2. Cloud IDEs (Project IDX, Codespaces, Gitpod)
-  // Logic: Detect if we are on a standard frontend port (3000, 5173, etc) 
-  // and try to switch to the backend port (8000).
-
-  // Strategy A: Subdomain replacement (e.g. 3000-xyz.idx.dev -> 8000-xyz.idx.dev)
   const portRegex = /^(\d+)-/;
   const match = hostname.match(portRegex);
   if (match) {
     const currentPort = match[1];
-    // If the subdomain starts with the current port, replace it with 8000
     if (['3000', '5173', '8080', '4200'].includes(currentPort)) {
       const newHostname = hostname.replace(currentPort + '-', '8000-');
       return `${protocol}//${newHostname}`;
     }
   }
 
-  // Strategy B: Port in URL (e.g. domain.com:3000 -> domain.com:8000)
+  // Handle port mapping if visible in URL
   if (port && ['3000', '5173', '8080'].includes(port)) {
     return `${protocol}//${hostname}:8000`;
   }
@@ -38,8 +33,8 @@ const getApiUrl = () => {
     }
   } catch (e) {}
 
-  // 4. Production Fallback
-  return 'https://cloud-deploy-api.onrender.com';
+  // 4. Production Fallback (Your Render URL)
+  return 'https://cloud-deploy-api-m77w.onrender.com';
 };
 
 const API_URL = getApiUrl();
