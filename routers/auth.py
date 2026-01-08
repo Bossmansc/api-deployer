@@ -7,7 +7,7 @@ from models import User, RefreshToken
 from schemas import UserCreate, User as UserSchema, Token, RefreshTokenCreate
 from dependencies import create_access_token, create_refresh_token, verify_refresh_token
 from config import settings
-from utils.security import verify_password, get_password_hash
+from utils.security import verify_password, get_password_hash, validate_password_strength
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 security = HTTPBearer()
@@ -22,8 +22,23 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Validate password strength
+    is_valid, message = validate_password_strength(user.password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
     # Create new user with pre-hashed password
-    hashed_password = get_password_hash(user.password)
+    try:
+        hashed_password = get_password_hash(user.password)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
     db_user = User(
         email=user.email,
         hashed_password=hashed_password
