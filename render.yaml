@@ -2,22 +2,22 @@ databases:
   - name: cloud-deploy-db
     databaseName: cloud_deploy
     user: clouddeploy
-    plan: free # Updated from 'starter' (legacy) to 'free'. Upgrade to a paid plan in the dashboard if needed.
-    region: oregon # or your preferred region
+    plan: free
+    region: oregon
 
 services:
   - type: redis
     name: cloud-deploy-redis
-    plan: free # Updated to 'free' as requested
+    plan: free
     region: oregon
-    ipAllowList: [] # internal access only
+    ipAllowList: [] # Access allowed only from internal services
 
   - type: web
     name: cloud-deploy-api
     runtime: docker
-    plan: starter # $7/month plan for the Web Service is still valid and recommended
+    plan: starter
     region: oregon
-    dockerfilePath: ./Dockerfile.complete
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -32,9 +32,7 @@ services:
         generateValue: true
       - key: ENVIRONMENT
         value: production
-      - key: RUN_MIGRATIONS
-        value: "true"
       - key: PORT
         value: "8000"
       - key: FRONTEND_URL
-        value: "*" # Change this to your frontend URL in production
+        value: "*" 

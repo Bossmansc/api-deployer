@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Rocket } from 'lucide-react';
+import { ArrowLeft, Rocket, AlertCircle } from 'lucide-react';
 import { api } from '../utils/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -14,6 +14,24 @@ export default function CreateProject({ onBack, onCreated }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const formatError = (err: any) => {
+    // Network errors (fetch failure) often result in TypeError: Failed to fetch
+    if (err instanceof TypeError && err.message === 'Failed to fetch') {
+      return "Unable to connect to backend. Please ensure the backend server is running on port 8000.";
+    }
+
+    if (typeof err === 'string') return err;
+    
+    if (err.detail) {
+      if (typeof err.detail === 'string') return err.detail;
+      if (Array.isArray(err.detail)) {
+        return err.detail.map((e: any) => e.msg || 'Invalid field').join(', ');
+      }
+    }
+    if (err.message) return err.message;
+    return 'Failed to create project. Unexpected error.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -23,7 +41,8 @@ export default function CreateProject({ onBack, onCreated }: Props) {
       await api.projects.create(formData);
       onCreated();
     } catch (err: any) {
-      setError(err.detail || 'Failed to create project');
+      console.error("Create project error:", err);
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }
@@ -50,8 +69,9 @@ export default function CreateProject({ onBack, onCreated }: Props) {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-sm flex items-start">
+            <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+            <span className="break-words">{error}</span>
           </div>
         )}
 
@@ -62,11 +82,13 @@ export default function CreateProject({ onBack, onCreated }: Props) {
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
+            minLength={3}
           />
           
           <Input 
             label="GitHub URL"
             placeholder="https://github.com/username/repo"
+            type="url"
             value={formData.github_url}
             onChange={(e) => setFormData({ ...formData, github_url: e.target.value })}
             required

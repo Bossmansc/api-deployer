@@ -5,6 +5,7 @@ from database import get_db
 from models import Project, User, ProjectStatus
 from schemas import ProjectCreate, Project as ProjectSchema, ProjectWithDeployments
 from dependencies import get_current_user
+from utils.validation import validator
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -26,12 +27,25 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Create project
-    # Note: github_url validation/conversion happens in the model
-    # Note: status enum conversion happens in the model via TypeDecorator
+    # Validate project name
+    is_valid_name, name_error = validator.validate_project_name(project.name)
+    if not is_valid_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=name_error
+        )
+
+    # Validate GitHub URL specifically (Pydantic only checks format, we check domain)
+    is_valid_url, url_error = validator.validate_github_url(str(project.github_url))
+    if not is_valid_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=url_error
+        )
+
     db_project = Project(
         name=project.name,
-        github_url=project.github_url,
+        github_url=str(project.github_url),
         user_id=current_user.id,
         status=ProjectStatus.ACTIVE 
     )
@@ -74,9 +88,19 @@ def update_project(
             detail="Project not found"
         )
     
+    # Validate updates
+    if project_update.name != project.name:
+        is_valid_name, name_error = validator.validate_project_name(project_update.name)
+        if not is_valid_name:
+            raise HTTPException(status_code=400, detail=name_error)
+            
+    if str(project_update.github_url) != project.github_url:
+        is_valid_url, url_error = validator.validate_github_url(str(project_update.github_url))
+        if not is_valid_url:
+            raise HTTPException(status_code=400, detail=url_error)
+
     project.name = project_update.name
-    project.github_url = project_update.github_url
-    
+    project.github_url = str(project_update.github_url)
     db.commit()
     db.refresh(project)
     return project

@@ -1,22 +1,13 @@
-# Entry point for Firebase Cloud Functions
-from firebase_functions import https_fn
-from main_preview import app as fastapi_app
 import uvicorn
-import io
-import flask
+import os
+from main_complete import app
 
-# This is a lightweight adapter to make FastAPI work with the Firebase Functions decorator
-# For production, we recommend deploying the container to Cloud Run directly.
-@https_fn.on_request()
-def api(req: https_fn.Request) -> https_fn.Response:
-    # ⚠️ Note: This is a simplified preview adapter.
-    # It converts the Firebase/Flask request to something FastAPI can handle implies some overhead.
-    # In a real production deployment on Firebase, you should use the containerized Cloud Run approach
-    # or the proper ASGI adapter 'mangum' or 'a2wsgi'.
-    # For the purpose of this preview, we will return a simple message if hit directly,
-    # as the 'run_preview.py' is the preferred way to run in IDX.
-    return https_fn.Response("Cloud Deploy API is running via Cloud Functions!")
+# Export app for production WSGI/ASGI servers
+__all__ = ["app"]
 
-# Note: To deploy the full FastAPI app to Firebase, the best practice is to use 
-# Google Cloud Run directly with the Dockerfile provided (Dockerfile.complete),
-# as Firebase Functions are optimized for event-driven logic rather than full REST APIs.
+if __name__ == "__main__":
+    # Get port from environment or default to 8000
+    port = int(os.getenv("PORT", 8000))
+    
+    # Host must be 0.0.0.0 for containerized environments
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
