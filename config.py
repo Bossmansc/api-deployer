@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseSettings):
     # Default to SQLite for stable local development/preview
-    # In production (Render), the DATABASE_URL env var will override this
+    # In production (Render), DATABASE_URL env var will override this
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./cloud_deploy.db")
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-prod")
@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
+    # Allow all origins by default in this setup to prevent CORS headaches in preview
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "*")
     
-    # Redis (Optional: fails gracefully if not found in cache.py)
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     APP_NAME: str = "Cloud Deploy API Gateway"

@@ -1,14 +1,21 @@
-const getApiUrl = () => {
+export const getApiUrl = () => {
+  // 1. Manual Override (useful for debugging)
+  if (typeof window !== 'undefined') {
+    const manualOverride = localStorage.getItem('API_URL_OVERRIDE');
+    if (manualOverride) return manualOverride;
+  }
+
   if (typeof window === 'undefined') return 'http://localhost:8000';
 
-  const { hostname, protocol, port } = window.location;
+  const { hostname, protocol, port, origin } = window.location;
 
-  // 1. Localhost Development
+  // 2. Localhost Development
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${protocol}//${hostname}:8000`;
   }
 
-  // 2. Cloud IDEs (Project IDX, Codespaces, Gitpod)
+  // 3. Cloud IDEs (Project IDX, Codespaces, Gitpod)
+  // Pattern A: Port at start (e.g. 3000-xyz.idx.dev -> 8000-xyz.idx.dev)
   const portRegex = /^(\d+)-/;
   const match = hostname.match(portRegex);
   if (match) {
@@ -19,12 +26,17 @@ const getApiUrl = () => {
     }
   }
 
-  // 3. Port mapping fallback
-  if (port && ['3000', '5173', '8080'].includes(port)) {
-    return `${protocol}//${hostname}:8000`;
+  // Pattern B: Port in middle/end (e.g. project-3000.dev -> project-8000.dev)
+  if (hostname.includes('-3000')) {
+    return `${protocol}//${hostname.replace('-3000', '-8000')}`;
   }
 
-  // 4. Environment Variable
+  // 4. Standard Port Mapping (e.g. domain.com:3000 -> domain.com:8000)
+  if (port && ['3000', '5173', '8080'].includes(port)) {
+    return origin.replace(port, '8000');
+  }
+
+  // 5. Environment Variable (Build time)
   try {
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) {
@@ -33,7 +45,7 @@ const getApiUrl = () => {
     }
   } catch (e) {}
 
-  // 5. Production Fallback
+  // 6. Production Fallback (Render)
   return 'https://cloud-deploy-api-m77w.onrender.com';
 };
 
@@ -45,83 +57,65 @@ export const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// Generic fetch wrapper to handle errors consistently
+const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_URL}${endpoint}`;
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+    
+    const data = await res.json().catch(() => ({})); 
+    
+    if (!res.ok) {
+      throw {
+        status: res.status,
+        message: data.detail || data.message || 'Request failed',
+        detail: data.detail,
+        url: url 
+      };
+    }
+    return data;
+  } catch (error: any) {
+    // Handle Network Errors (Server down, CORS, Wrong URL)
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.error(`❌ Network Error connecting to: ${url}`);
+      throw {
+        message: `Unable to connect to backend at ${API_URL}`,
+        url: url,
+        isNetworkError: true,
+        originalError: error
+      };
+    }
+    throw error;
+  }
+};
+
 export const api = {
+  url: API_URL, // Export base URL for UI display
   auth: {
-    login: async (credentials: any) => {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
-    register: async (data: any) => {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
-    me: async () => {
-      const res = await fetch(`${API_URL}/users/me`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
+    login: (creds: any) => fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(creds) }),
+    register: (data: any) => fetchAPI('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    me: () => fetchAPI('/users/me', { headers: getAuthHeaders() }),
   },
   projects: {
-    list: async () => {
-      const res = await fetch(`${API_URL}/projects`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
-    create: async (data: { name: string; github_url: string }) => {
-      try {
-        const res = await fetch(`${API_URL}/projects`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify(data),
-        });
-        
-        const responseData = await res.json();
-        if (!res.ok) throw responseData;
-        return responseData;
-      } catch (error) {
-        throw error;
-      }
-    },
-    get: async (id: number) => {
-      const res = await fetch(`${API_URL}/projects/${id}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
-    deploy: async (id: number) => {
-      const res = await fetch(`${API_URL}/projects/${id}/deploy`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    },
+    list: () => fetchAPI('/projects', { headers: getAuthHeaders() }),
+    create: (data: any) => fetchAPI('/projects', { 
+      method: 'POST', 
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data) 
+    }),
+    get: (id: number) => fetchAPI(`/projects/${id}`, { headers: getAuthHeaders() }),
+    deploy: (id: number) => fetchAPI(`/projects/${id}/deploy`, { 
+      method: 'POST', 
+      headers: getAuthHeaders() 
+    }),
   },
   deployments: {
-    getLogs: async (id: number) => {
-      const res = await fetch(`${API_URL}/deployments/${id}/logs`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw await res.json();
-      return res.json();
-    }
+    getLogs: (id: number) => fetchAPI(`/deployments/${id}/logs`, { headers: getAuthHeaders() })
   }
 };
