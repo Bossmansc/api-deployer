@@ -20,8 +20,9 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
-    # Added max_length=64 to prevent bcrypt 72-byte limit crash
-    password: str = Field(..., min_length=8, max_length=64)
+    # Increased max_length to 128. 
+    # The backend will now pre-hash this, so we are no longer limited by bcrypt's 72 bytes.
+    password: str = Field(..., min_length=8, max_length=128)
 
 class User(UserBase):
     id: int

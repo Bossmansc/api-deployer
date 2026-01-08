@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr, HttpUrl
+from pydantic import BaseModel, EmailStr, HttpUrl, Field
 from datetime import datetime, timedelta
 from typing import Optional, List
 import enum
@@ -27,7 +27,7 @@ class User:
     def __init__(self, email: str, password: str):
         self.id = db.get_next_id(db.users)
         self.email = email
-        self.hashed_password = password  # In real app, hash this
+        self.hashed_password = password  # In preview, we don't hash for simplicity
         self.created_at = datetime.utcnow()
         self.is_active = True
         self.is_admin = self.id == 1  # First user is admin
@@ -66,7 +66,8 @@ class Deployment:
 # Pydantic schemas
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    # Updated max_length to 128 to match production schema
+    password: str = Field(..., min_length=8, max_length=128)
 
 class UserResponse(BaseModel):
     id: int

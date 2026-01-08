@@ -3,23 +3,38 @@ from datetime import datetime, timedelta
 from typing import Optional
 import secrets
 import string
+import logging
+import hashlib
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _pre_hash(password: str) -> str:
+    """
+    Pre-hash the password using SHA-256.
+    This converts any password length into a fixed 64-character hex string,
+    which fits perfectly within Bcrypt's 72-byte limit.
+    """
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
     try:
-        return pwd_context.verify(plain_password, hashed_password)
-    except ValueError:
-        # Handle "password cannot be longer than 72 bytes" error from bcrypt gracefully
+        # We must pre-hash the input to match how it was stored
+        hashed_input = _pre_hash(plain_password)
+        return pwd_context.verify(hashed_input, hashed_password)
+    except Exception as e:
+        logger.error(f"Unexpected error during password verification: {str(e)}")
         return False
 
 def get_password_hash(password: str) -> str:
     """Hash a password"""
-    if len(password.encode('utf-8')) > 72:
-        # Fallback check, though Pydantic should catch this first
-        raise ValueError("Password too long")
-    return pwd_context.hash(password)
+    # 1. Pre-hash with SHA-256 to bypass length limit
+    hashed_input = _pre_hash(password)
+    # 2. Salt and hash with Bcrypt
+    return pwd_context.hash(hashed_input)
 
 def generate_secure_password(length: int = 16) -> str:
     """Generate a secure random password"""
@@ -31,8 +46,11 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     """Validate password strength"""
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
-    if len(password.encode('utf-8')) > 72:
-        return False, "Password must be shorter than 72 bytes"
+    
+    # Updated limit to 128 characters matching schema
+    if len(password) > 128:
+        return False, "Password must be shorter than 128 characters"
+        
     if not any(c.isupper() for c in password):
         return False, "Password must contain at least one uppercase letter"
     if not any(c.islower() for c in password):
@@ -49,6 +67,8 @@ def generate_api_key() -> str:
 
 def sanitize_input(input_string: str) -> str:
     """Basic input sanitization"""
+    if not input_string:
+        return ""
     # Remove potentially dangerous characters
     dangerous_chars = ['<', '>', '"', "'", ';', '(', ')', '&', '|']
     for char in dangerous_chars:
