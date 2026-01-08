@@ -2,20 +2,20 @@ databases:
   - name: cloud-deploy-db
     databaseName: cloud_deploy
     user: clouddeploy
-    plan: starter # $7/month plan
+    plan: free # Updated from 'starter' (legacy) to 'free'. Upgrade to a paid plan in the dashboard if needed.
     region: oregon # or your preferred region
 
 services:
   - type: redis
     name: cloud-deploy-redis
-    plan: starter # $10/month (or use 'free' for testing)
+    plan: free # Updated to 'free' as requested
     region: oregon
     ipAllowList: [] # internal access only
 
   - type: web
     name: cloud-deploy-api
     runtime: docker
-    plan: starter # $7/month plan
+    plan: starter # $7/month plan for the Web Service is still valid and recommended
     region: oregon
     dockerfilePath: ./Dockerfile.complete
     envVars:
