@@ -35,34 +35,6 @@ app = FastAPI(
     version=settings.VERSION,
     description="""
     API Gateway for Cloud Deployment Platform
-
-    ## Features
-    - 🔐 **JWT Authentication** with refresh tokens
-    - 📦 **Project management** (CRUD operations)
-    - 🚀 **Deployment simulation** with background tasks
-    - 📊 **Real-time deployment logs**
-    - 🗄️ **PostgreSQL database** with SQLAlchemy ORM
-    - 📚 **Auto-generated API documentation**
-    - ⚡ **Rate limiting** (60 requests/minute)
-    - 🛡️ **Security utilities** & input validation
-    - 📈 **Admin dashboard** with system statistics
-    - 🏥 **Health checks** with detailed metrics
-    - 📊 **Analytics** & reporting
-    - 💾 **Redis caching** for performance
-    - 📝 **Request logging** & monitoring
-
-    ## Authentication
-    Most endpoints require JWT authentication. 
-    Register at `/auth/register` and login at `/auth/login` to get access tokens.
-
-    ## Rate Limits
-    - 60 requests per minute per IP address
-    - Health endpoints are not rate limited
-    - Rate limit headers included in responses
-
-    ## Admin Access
-    First registered user automatically becomes admin.
-    Admin endpoints require admin privileges.
     """,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -84,9 +56,10 @@ app = FastAPI(
 )
 
 # Configure CORS
+# Updated to allow all origins in sandbox/dev to prevent "Is backend running?" errors
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

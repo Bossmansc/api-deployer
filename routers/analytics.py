@@ -23,12 +23,12 @@ def get_user_analytics(
         end_date = datetime.utcnow().isoformat()
     if not start_date:
         start_date = (datetime.utcnow() - timedelta(days=30)).isoformat()
-    
+        
     # Validate date range
     is_valid, error = validator.validate_date_range(start_date, end_date)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error)
-    
+        
     # Convert dates
     start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
     end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
@@ -54,7 +54,7 @@ def get_user_analytics(
     for deployment in deployments:
         status = deployment.status.value
         status_counts[status] = status_counts.get(status, 0) + 1
-    
+        
     # Success rate
     successful_deployments = status_counts.get('success', 0)
     success_rate = (successful_deployments / total_deployments * 100) if total_deployments > 0 else 0
@@ -65,7 +65,7 @@ def get_user_analytics(
         if deployment.completed_at and deployment.started_at:
             duration = (deployment.completed_at - deployment.started_at).total_seconds()
             deployment_times.append(duration)
-    
+            
     avg_deployment_time = sum(deployment_times) / len(deployment_times) if deployment_times else 0
     
     # Daily deployment trend
@@ -73,7 +73,7 @@ def get_user_analytics(
     for deployment in deployments:
         date_str = deployment.started_at.date().isoformat()
         daily_trend[date_str] = daily_trend.get(date_str, 0) + 1
-    
+        
     return {
         "period": {
             "start": start_date,
@@ -154,14 +154,12 @@ def get_admin_overview(
     for i in range(7):
         date = datetime.utcnow() - timedelta(days=i)
         date_str = date.date().isoformat()
-        
         start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = date.replace(hour=23, minute=59, second=59, microsecond=999999)
         
         daily_deployments = db.query(Deployment).filter(
             Deployment.started_at.between(start_of_day, end_of_day)
         ).count()
-        
         deployment_trend[date_str] = daily_deployments
         
     return {
@@ -206,7 +204,7 @@ def get_project_analytics(
     
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+        
     # Set default date range (all time)
     if not end_date:
         end_date = datetime.utcnow().isoformat()

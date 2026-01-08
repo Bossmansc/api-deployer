@@ -15,14 +15,12 @@ KEEP_FILES = [
     "Dockerfile.complete",
     "README_complete.md",
     "cleanup_complete.py",
-    
     # Core modules
     "config.py",
     "database.py",
     "models.py",
     "schemas.py",
     "dependencies.py",
-    
     # Routers
     "routers/auth.py",
     "routers/projects.py",
@@ -32,38 +30,31 @@ KEEP_FILES = [
     "routers/admin.py",
     "routers/cache.py",
     "routers/analytics.py",
-    
     # Middleware
     "middleware/rate_limiter.py",
     "middleware/request_logger.py",
-    
     # Utils
     "utils/security.py",
     "utils/email_validator.py",
     "utils/logger.py",
     "utils/cache.py",
     "utils/validation.py",
-    
     # Tests
     "test_api_complete.py",
-    
     # Database migrations
     "alembic/env.py",
     "alembic.ini",
     "alembic/script.py.mako",
     "alembic/versions/001_initial_migration.py",
     "alembic/versions/002_add_admin_field.py",
-    
     # Deployment
     "create_tables.py",
     ".env.example",
     "render.yaml",
-    
     # Kubernetes
     "kubernetes/deployment.yaml",
     "kubernetes/postgres.yaml",
     "kubernetes/secrets.yaml",
-    
     # Nginx
     "nginx/nginx.conf",
 ]
@@ -93,7 +84,6 @@ DELETE_FILES = [
 def cleanup_files():
     """Remove duplicate and old files"""
     print("🧹 Starting cleanup...")
-    
     deleted_count = 0
     kept_count = 0
     
@@ -138,7 +128,7 @@ def cleanup_files():
                 print(f"📁 Created: {init_file}")
             except Exception as e:
                 print(f"⚠️  Error creating {init_file}: {e}")
-
+                
     # Create logs directory
     logs_dir = "logs"
     if not os.path.exists(logs_dir):
@@ -151,7 +141,7 @@ def cleanup_files():
         if not os.path.exists(nginx_dir):
             os.makedirs(nginx_dir, exist_ok=True)
             print(f"📁 Created: {nginx_dir}/")
-            
+
     print("\n🎯 Project structure is now clean and organized!")
     print("🚀 Use 'python run_complete.py' to start the application")
     print("🐳 Use 'docker-compose -f docker-compose.complete.yml up' for Docker")

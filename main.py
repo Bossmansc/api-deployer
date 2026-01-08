@@ -13,7 +13,6 @@ def api(req: https_fn.Request) -> https_fn.Response:
     # It converts the Firebase/Flask request to something FastAPI can handle implies some overhead.
     # In a real production deployment on Firebase, you should use the containerized Cloud Run approach
     # or the proper ASGI adapter 'mangum' or 'a2wsgi'.
-    
     # For the purpose of this preview, we will return a simple message if hit directly,
     # as the 'run_preview.py' is the preferred way to run in IDX.
     return https_fn.Response("Cloud Deploy API is running via Cloud Functions!")

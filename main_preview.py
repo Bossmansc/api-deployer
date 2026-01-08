@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, HttpUrl
 from datetime import datetime, timedelta
@@ -72,7 +73,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     created_at: datetime
     is_active: bool
-    
+
     class Config:
         from_attributes = True
 
@@ -92,7 +93,7 @@ class ProjectResponse(BaseModel):
     status: ProjectStatus
     user_id: int
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -103,7 +104,7 @@ class DeploymentResponse(BaseModel):
     logs: str
     started_at: datetime
     completed_at: Optional[datetime]
-    
+
     class Config:
         from_attributes = True
 
@@ -117,6 +118,15 @@ app = FastAPI(
     title="Cloud Deploy API Gateway - Preview",
     version="1.0.0",
     description="Preview version for sandbox environment"
+)
+
+# Enable CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for preview/sandbox
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 security = HTTPBearer()
@@ -139,7 +149,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         user = next((u for u in db.users if u.id == user_id), None)
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found or inactive")
-        
         return user
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -175,7 +184,6 @@ def register(user: UserCreate):
     # Create user
     new_user = User(email=user.email, password=user.password)
     db.users.append(new_user)
-    
     return new_user
 
 @app.post("/auth/login", response_model=Token)
@@ -225,15 +233,14 @@ async def simulate_deployment(deployment_id: int):
     deployment = next((d for d in db.deployments if d.id == deployment_id), None)
     if not deployment:
         return
-    
+        
     # Simulate process
     deployment.status = DeploymentStatus.BUILDING
     deployment.logs += "Building application...\n"
-    
     await asyncio.sleep(1)
+    
     deployment.status = DeploymentStatus.DEPLOYING
     deployment.logs += "Deploying to production...\n"
-    
     await asyncio.sleep(1)
     
     # Random success/failure
@@ -243,7 +250,7 @@ async def simulate_deployment(deployment_id: int):
     else:
         deployment.status = DeploymentStatus.FAILED
         deployment.logs += "✗ Deployment failed\n"
-    
+        
     deployment.completed_at = datetime.utcnow()
 
 @app.post("/projects/{project_id}/deploy", response_model=DeploymentResponse, status_code=201)
@@ -274,12 +281,12 @@ def get_deployment(
     deployment = next((d for d in db.deployments if d.id == deployment_id), None)
     if not deployment:
         raise HTTPException(status_code=404, detail="Deployment not found")
-    
+        
     # Check if user owns the project
     project = next((p for p in db.projects if p.id == deployment.project_id), None)
     if not project or project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Deployment not found")
-    
+        
     return deployment
 
 @app.get("/deployments/{deployment_id}/logs")
@@ -290,12 +297,12 @@ def get_deployment_logs(
     deployment = next((d for d in db.deployments if d.id == deployment_id), None)
     if not deployment:
         raise HTTPException(status_code=404, detail="Deployment not found")
-    
+        
     # Check if user owns the project
     project = next((p for p in db.projects if p.id == deployment.project_id), None)
     if not project or project.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Deployment not found")
-    
+        
     return {"logs": deployment.logs}
 
 @app.get("/admin/stats")
@@ -303,7 +310,7 @@ def get_admin_stats(current_user: User = Depends(get_current_user)):
     # Check if user is admin
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin privileges required")
-    
+        
     return {
         "users": len(db.users),
         "projects": len(db.projects),
