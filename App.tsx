@@ -34,7 +34,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
   const [notification, setNotification] = useState<{msg: string, type: 'error' | 'success'} | null>(null);
-  
   const [apiUrl, setApiUrl] = useState<string>(() => {
     const saved = localStorage.getItem('api_url');
     if (saved === "http://localhost:8000") return DEFAULT_API_URL;
@@ -99,7 +98,6 @@ export default function App() {
           {notification.msg}
         </div>
       )}
-
       {view === 'landing' && (
         <LandingView 
           onLogin={() => setView('login')} 
@@ -194,7 +192,6 @@ function Dashboard({ token, user, apiUrl, onLogout, onError, onSuccess }: any) {
           </div>
         </div>
       </header>
-
       <main className="flex-1 overflow-auto bg-slate-950 p-4 sm:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="space-y-6">
@@ -205,7 +202,6 @@ function Dashboard({ token, user, apiUrl, onLogout, onError, onSuccess }: any) {
               </h2>
               <NewProjectModal onCreate={createProject} />
             </div>
-
             {loading && projects.length === 0 ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
             ) : projects.length === 0 ? (

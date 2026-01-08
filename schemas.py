@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, HttpUrl
+from pydantic import BaseModel, EmailStr, HttpUrl, Field
 from datetime import datetime
 from typing import Optional, List
 import enum
@@ -20,13 +20,14 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
-    password: str
+    # Added max_length=64 to prevent bcrypt 72-byte limit crash
+    password: str = Field(..., min_length=8, max_length=64)
 
 class User(UserBase):
     id: int
     created_at: datetime
     is_active: bool
-    is_admin: bool = False  # Added missing field
+    is_admin: bool = False
 
     class Config:
         from_attributes = True
@@ -81,7 +82,6 @@ class Deployment(DeploymentBase):
         from_attributes = True
 
 # --- Project Schemas (Extended) ---
-# Defined AFTER Deployment so the type reference works immediately
 class ProjectWithDeployments(Project):
     deployments: List[Deployment] = []
 
