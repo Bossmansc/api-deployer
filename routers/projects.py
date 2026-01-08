@@ -26,12 +26,13 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Create project with explicit string conversion
+    # Create project
+    # Note: github_url validation/conversion happens in the model
+    # Note: status enum conversion happens in the model via TypeDecorator
     db_project = Project(
         name=project.name,
-        github_url=str(project.github_url),  # Explicitly convert to string
+        github_url=project.github_url,
         user_id=current_user.id,
-        # We pass the Enum member. The model configuration now ensures the value "active" is stored.
         status=ProjectStatus.ACTIVE 
     )
     db.add(db_project)
@@ -73,9 +74,8 @@ def update_project(
             detail="Project not found"
         )
     
-    # Update fields with explicit string conversion
     project.name = project_update.name
-    project.github_url = str(project_update.github_url)  # Explicitly convert to string
+    project.github_url = project_update.github_url
     
     db.commit()
     db.refresh(project)

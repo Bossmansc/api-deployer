@@ -19,15 +19,35 @@ def _pre_hash(password: str) -> bytes:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
     try:
-        # We must pre-hash the input to match how it was stored
-        hashed_input = _pre_hash(plain_password)
         # Convert hashed_password from string to bytes if needed
         if isinstance(hashed_password, str):
             hashed_password_bytes = hashed_password.encode('utf-8')
         else:
             hashed_password_bytes = hashed_password
+
+        # 1. Try verifying with pre-hashing (Current Standard)
+        # This handles the SHA-256 pre-hashed passwords
+        try:
+            hashed_input = _pre_hash(plain_password)
+            if bcrypt.checkpw(hashed_input, hashed_password_bytes):
+                return True
+        except Exception:
+            # Continue to legacy method if this fails (e.g. salt mismatch)
+            pass
+
+        # 2. Try verifying without pre-hashing (Legacy Support)
+        # This handles old passwords created before the fix.
+        # We wrap this in try/except because bcrypt might complain about long passwords
+        # if we pass them raw.
+        try:
+            # Only attempt raw check if length is safe for bcrypt (72 bytes)
+            if len(plain_password.encode('utf-8')) <= 72:
+                if bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password_bytes):
+                    return True
+        except Exception:
+            pass
             
-        return bcrypt.checkpw(hashed_input, hashed_password_bytes)
+        return False
     except Exception as e:
         logger.error(f"Password verification error: {str(e)}")
         return False
@@ -71,6 +91,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
         return False, "Password must contain at least one digit"
     if not any(c in string.punctuation for c in password):
         return False, "Password must contain at least one special character"
+        
     return True, "Password is strong"
 
 def generate_api_key() -> str:

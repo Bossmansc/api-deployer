@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, validates
 import enum
@@ -20,41 +21,6 @@ class ProjectStatus(str, enum.Enum):
     INACTIVE = "inactive"
     ERROR = "error"
 
-class Project(Base):
-    __tablename__ = "projects"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    github_url = Column(String, nullable=False)
-    # Use values_callable to force SQLAlchemy to use the enum values (lowercase) instead of names (uppercase)
-    status = Column(Enum(ProjectStatus, values_callable=lambda obj: [e.value for e in obj]), default=ProjectStatus.ACTIVE)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    owner = relationship("User", back_populates="projects")
-    deployments = relationship("Deployment", back_populates="project")
-    
-    @validates('github_url')
-    def validate_github_url(self, key, value):
-        """Convert HttpUrl to string before storing in database"""
-        # If value has a __str__ method (like Pydantic's HttpUrl), convert it
-        if hasattr(value, '__str__'):
-            return str(value)
-        return value
-    
-    @validates('status')
-    def validate_status(self, key, value):
-        """Ensure status is a valid ProjectStatus enum value"""
-        if isinstance(value, str):
-            # Convert string to enum
-            try:
-                return ProjectStatus(value.lower())
-            except ValueError:
-                # If invalid, return default
-                return ProjectStatus.ACTIVE
-        elif isinstance(value, ProjectStatus):
-            return value
-        else:
-            return ProjectStatus.ACTIVE
-
 class DeploymentStatus(str, enum.Enum):
     PENDING = "pending"
     BUILDING = "building"
@@ -63,12 +29,71 @@ class DeploymentStatus(str, enum.Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
+# Custom TypeDecorator to handle Enum value mapping
+class ProjectStatusType(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, ProjectStatus):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return ProjectStatus(value)
+        return value
+
+class DeploymentStatusType(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, DeploymentStatus):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return DeploymentStatus(value)
+        return value
+
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    github_url = Column(String, nullable=False)
+    status = Column(ProjectStatusType, default=ProjectStatus.ACTIVE)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    owner = relationship("User", back_populates="projects")
+    deployments = relationship("Deployment", back_populates="project")
+    
+    @validates('github_url')
+    def validate_github_url(self, key, value):
+        """Convert HttpUrl to string before storing in database"""
+        if hasattr(value, '__str__'):
+            return str(value)
+        return value
+    
+    @validates('status')
+    def validate_status(self, key, value):
+        """Ensure status is a valid ProjectStatus enum value"""
+        if isinstance(value, str):
+            try:
+                return ProjectStatus(value.lower())
+            except ValueError:
+                return ProjectStatus.ACTIVE
+        elif isinstance(value, ProjectStatus):
+            return value
+        else:
+            return ProjectStatus.ACTIVE
+
 class Deployment(Base):
     __tablename__ = "deployments"
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    # Use values_callable for DeploymentStatus as well
-    status = Column(Enum(DeploymentStatus, values_callable=lambda obj: [e.value for e in obj]), default=DeploymentStatus.PENDING)
+    status = Column(DeploymentStatusType, default=DeploymentStatus.PENDING)
     logs = Column(Text, default="")
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
