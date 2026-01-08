@@ -27,11 +27,9 @@ def create_project(
     current_user: User = Depends(get_current_user)
 ):
     # Convert HttpUrl to string for database storage
-    project_data = project.dict()
-    project_data["github_url"] = str(project_data["github_url"])
-    
     db_project = Project(
-        **project_data,
+        name=project.name,
+        github_url=str(project.github_url),  # Convert HttpUrl to string directly
         user_id=current_user.id
     )
     db.add(db_project)
@@ -73,12 +71,9 @@ def update_project(
             detail="Project not found"
         )
     
-    # Convert HttpUrl to string for database storage
-    update_data = project_update.dict()
-    update_data["github_url"] = str(update_data["github_url"])
-    
-    for key, value in update_data.items():
-        setattr(project, key, value)
+    # Update fields directly
+    project.name = project_update.name
+    project.github_url = str(project_update.github_url)  # Convert HttpUrl to string
     
     db.commit()
     db.refresh(project)
